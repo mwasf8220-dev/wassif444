@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#080d18">
+<title>WASSIF 444 XO</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at top,#183047,#080d18 65%);color:white;font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center;padding:18px}
+.app{width:100%;max-width:400px;text-align:center}
+.logo{font-size:32px;font-weight:900;letter-spacing:2px;color:#38ff91;text-shadow:0 0 20px #38ff9160}
+.logo span{color:#ff4966}
+.sub{color:#a5b4c7;margin:9px 0 25px;letter-spacing:3px;font-size:12px}
+.intro{position:fixed;inset:0;background:#080d18;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:5;animation:hide 1s ease 2s forwards}
+.intro .logo{font-size:36px;animation:pulse .8s infinite alternate}
+@keyframes pulse{to{transform:scale(1.08);text-shadow:0 0 35px #38ff91}}
+@keyframes hide{to{opacity:0;visibility:hidden;pointer-events:none}}
+.modes{display:flex;gap:8px;margin-bottom:16px}
+button{font:inherit;cursor:pointer}
+.mode{flex:1;padding:12px 5px;border:1px solid #304158;border-radius:12px;background:#142033;color:white}
+.mode.active{border-color:#38ff91;color:#38ff91;background:#142b2a}
+.scores{display:flex;gap:10px;margin-bottom:18px}
+.score{flex:1;background:#111c2c;border:1px solid #26364a;border-radius:13px;padding:12px}
+.green{color:#38ff91}.red{color:#ff4966}
+#status{min-height:28px;font-size:18px;font-weight:bold;margin:18px 0}
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.cell{aspect-ratio:1;border:1px solid #2b3b50;border-radius:16px;background:linear-gradient(145deg,#18273a,#0e1725);font-size:clamp(45px,14vw,62px);font-weight:900}
+.cell.x{color:#38ff91;text-shadow:0 0 18px #38ff9180}
+.cell.o{color:#ff4966;text-shadow:0 0 18px #ff496680}
+.cell.win{background:#253b45;border-color:#38ff91}
+.action{width:100%;padding:15px;margin-top:18px;border:0;border-radius:12px;background:linear-gradient(90deg,#00d879,#38ff91);font-weight:bold;color:#07130d;font-size:17px}
+footer{margin-top:22px;color:#718198;font-size:12px}
+</style>
+</head>
+<body>
+<div class="intro"><div class="logo">WASSIF <span>444</span></div><p>XO CHALLENGE</p></div>
+<main class="app">
+<div class="logo">WASSIF <span>444</span></div>
+<div class="sub">XO CHALLENGE</div>
+<div class="modes">
+<button class="mode active" id="cpu">🤖 ضد الكمبيوتر</button>
+<button class="mode" id="two">👥 لاعبين</button>
+</div>
+<div class="scores">
+<div class="score"><div class="green">الأخضر X</div><strong id="sx">0</strong></div>
+<div class="score"><div class="red">الأحمر O</div><strong id="so">0</strong></div>
+<div class="score"><div>تعادل</div><strong id="sd">0</strong></div>
+</div>
+<div id="status">دورك آ وسيف 💚</div>
+<div class="board" id="board"></div>
+<button class="action" id="restart">🔄 لعبة جديدة</button>
+<footer>MADE WITH ❤️ BY WASSIF 444</footer>
+</main>
+<script>
+const boardEl=document.querySelector('#board'),statusEl=document.querySelector('#status');
+const lines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+let b=Array(9).fill(''),turn='X',over=false,mode='cpu';
+let scores={X:0,O:0,D:0};
+const cells=[];
+for(let i=0;i<9;i++){let c=document.createElement('button');c.className='cell';c.setAttribute('aria-label','خانة '+(i+1));c.onclick=()=>move(i);boardEl.appendChild(c);cells.push(c)}
+function winner(a){for(const line of lines)if(a[line[0]]&&a[line[0]]===a[line[1]]&&a[line[1]]===a[line[2]])return line;return null}
+function move(i){if(over||b[i]||(mode==='cpu'&&turn==='O'))return;b[i]=turn;render();let w=winner(b);if(w){finish(turn,w);return}if(b.every(Boolean)){over=true;scores.D++;statusEl.textContent='🤝 تعادل!';updateScores();return}turn=turn==='X'?'O':'X';updateStatus();if(mode==='cpu'&&turn==='O')setTimeout(cpuMove,350)}
+function cpuMove(){if(over)return;let best=-Infinity,choice=-1;for(let i=0;i<9;i++)if(!b[i]){b[i]='O';let score=minimax(b,0,false);b[i]='';if(score>best){best=score;choice=i}}if(choice>=0){b[choice]='O';render();let w=winner(b);if(w){finish('O',w);return}if(b.every(Boolean)){over=true;scores.D++;statusEl.textContent='🤝 تعادل!';updateScores();return}turn='X';updateStatus()}}
+function minimax(a,depth,maximizing){let w=winner(a);if(w){let mark=a[w[0]];return mark==='O'?10-depth:depth-10}if(a.every(Boolean))return 0;if(maximizing){let best=-Infinity;for(let i=0;i<9;i++)if(!a[i]){a[i]='O';best=Math.max(best,minimax(a,depth+1,false));a[i]=''}return best}else{let best=Infinity;for(let i=0;i<9;i++)if(!a[i]){a[i]='X';best=Math.min(best,minimax(a,depth+1,true));a[i]=''}return best}}
+function finish(mark,line){over=true;scores[mark]++;line.forEach(i=>cells[i].classList.add('win'));statusEl.textContent=mark==='X'?'🏆 ربحتي آ وسيف! 💚':(mode==='cpu'?'🤖 الكمبيوتر ربح هاد المرة ❤️':'🏆 اللاعب الأحمر ربح! ❤️');updateScores()}
+function render(){cells.forEach((c,i)=>{c.textContent=b[i];c.className='cell'+(b[i]==='X'?' x':b[i]==='O'?' o':'')})}
+function updateScores(){document.querySelector('#sx').textContent=scores.X;document.querySelector('#so').textContent=scores.O;document.querySelector('#sd').textContent=scores.D}
+function updateStatus(){statusEl.textContent=mode==='cpu'?(turn==='X'?'دورك آ وسيف 💚':'الكمبيوتر كيفكر... ❤️'):(turn==='X'?'دور اللاعب الأخضر 💚':'دور اللاعب الأحمر ❤️')}
+function reset(){b=Array(9).fill('');turn='X';over=false;render();updateStatus()}
+document.querySelector('#restart').onclick=reset;
+document.querySelector('#cpu').onclick=()=>{mode='cpu';document.querySelector('#cpu').classList.add('active');document.querySelector('#two').classList.remove('active');reset()};
+document.querySelector('#two').onclick=()=>{mode='two';document.querySelector('#two').classList.add('active');document.querySelector('#cpu').classList.remove('active');reset()};
+</script>
+</body>
+</html>
